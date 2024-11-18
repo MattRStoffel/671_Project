@@ -15,11 +15,14 @@ class MyDataset(Dataset):
             nltk.data.find("corpora/stopwords.zip")
         except LookupError:
             nltk.download("stopwords", quiet=True)
+            nltk.data.find("corpora/stopwords.zip")
 
         try:
             nltk.data.find("tokenizers/punkt.zip")
         except LookupError:
             nltk.download("punkt", quiet=True)
+            nltk.data.find("tokenizers/punkt.zip")
+
 
         # Initializing a BERT google-bert/bert-base-uncased style configuration
         self.maxSeq = 0
@@ -57,7 +60,7 @@ class MyDataset(Dataset):
             print(e)
             print(text)
             exit(0)
-        return text
+        return self.tokenizer.encode(text, padding="max_length", max_length=self.maxSeq)
     def getVocabSize(self):
         vocabSize = self.tokenizer.vocab_size
         return vocabSize
@@ -65,8 +68,7 @@ class MyDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
-        txt = self.tokenizer.encode(self.X[idx], padding="max_length", max_length=self.maxSeq)
-        return txt, self.Y[idx]
+        return self.X[idx], self.Y[idx]
 
 def get_data_loaders(batch_size: int):
     dataset = MyDataset(batch_size)
