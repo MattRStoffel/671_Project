@@ -1,11 +1,15 @@
 import torch
 import torch.nn.functional as F
 from data import get_data_loaders
+import pickle
+import matplotlib.pyplot as plt
 
 device = (
     "cuda"
     if torch.cuda.is_available()
-    else "mps" if torch.backends.mps.is_available() else "cpu"
+    else "mps"
+    if torch.backends.mps.is_available()
+    else "cpu"
 )
 print(f"Using {device} device")
 
@@ -41,52 +45,65 @@ def definingLabel(label: str):
     return torch.tensor(y)
 
 
-# Access maxSeq and vocabSize
-batchsize = 3
-maxSeq, vocabSize, train_loader, test_loader, validation_loader = get_data_loaders(batchsize)
-model = NeuralNetwork(batchSize=batchsize, maxSeq=maxSeq, vocabSize=vocabSize)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-device = 'cpu'
+def graph_accuracy(accuracy):
+    plt.plot(accuracy)
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.show()
 
-#Train model
-epochs = 500
-for epoch in range(epochs):
-    correct_count = 0
-    incorrect_count = 0
-    model = model.train()
+
+def save_model(model, epoch):
+    with open(f"model_{epoch}.pkl", "wb") as f:
+        pickle.dump(model, f)
+
+
+def train_one_epoch(model, train_loader, optimizer, device):
+    model.train()
     for X, y in train_loader:
         X = torch.stack(X, dim=1).int().to(device)
-        listOfLabels = []
-        for label in y:
-            listOfLabels.append(definingLabel(label))
+        listOfLabels = [definingLabel(label) for label in y]
         listOfLabels = torch.stack(listOfLabels, dim=0).int().to(device)
-        pred = model.forward(X)
-        pred = pred.squeeze(dim=2)
-        #****************DELETE (debug) *****************************************
-        predVal = pred.argmax(dim=1)
-        actVal = listOfLabels.argmax(dim=1)
-        isCorrect = (predVal == actVal)
-        isWrong = (predVal != actVal)
-        correct_count = correct_count + isCorrect.sum().item()
-        incorrect_count = incorrect_count + isWrong.sum().item()
-        # ****************DELETE (debug) *****************************************
+        pred = model.forward(X).squeeze(dim=2)
         loss = F.cross_entropy(pred.float(), listOfLabels.float())
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    print("model correct: ", correct_count)
-    print("model incorrect: ", incorrect_count)
 
-#Testing
-#for X, y in test_loader:
-#    X = torch.stack(X, dim=1).int().to(device)
-#    listOfLabels = []
-#    for label in y:
-#       listOfLabels.append(definingLabel(label))
-#        listOfLabels = torch.stack(listOfLabels, dim=0).int().to(device)
-#        pred = model.forward(X)
-#        pred = pred.squeeze(dim=2)
-#        loss = F.cross_entropy(pred.float(), listOfLabels.float())
-#        optimizer.zero_grad()
-#        loss.backward()
-#        optimizer.step()
+
+def validate(model, validation_loader, device):
+    model.eval()
+    correct_count = 0
+    incorrect_count = 0
+    with torch.no_grad():
+        for X, y in validation_loader:
+            X = torch.stack(X, dim=1).int().to(device)
+            listOfLabels = [definingLabel(label) for label in y]
+            listOfLabels = torch.stack(listOfLabels, dim=0).int().to(device)
+            pred = model.forward(X).squeeze(dim=2)
+            predVal = pred.argmax(dim=1)
+            actVal = listOfLabels.argmax(dim=1)
+            correct_count += (predVal == actVal).sum().item()
+            incorrect_count += (predVal != actVal).sum().item()
+    return correct_count / (correct_count + incorrect_count)
+
+
+def train():
+    batchsize = 2
+    maxSeq, vocabSize, train_loader, _, validation_loader = get_data_loaders(batchsize)
+    model = NeuralNetwork(batchSize=batchsize, maxSeq=maxSeq, vocabSize=vocabSize)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    device = "cpu"
+    epochs = 20
+    validation_accuracy = []
+
+    for epoch in range(epochs):
+        train_one_epoch(model, train_loader, optimizer, device)
+        validation_acc = validate(model, validation_loader, device)
+        validation_accuracy.append(validation_acc)
+        print(f"Epoch {epoch}, Validation Accuracy: {validation_acc}")
+        save_model(model, epoch)
+
+    graph_accuracy(validation_accuracy)
+
+
+train()
