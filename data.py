@@ -9,6 +9,7 @@ from nltk.stem import PorterStemmer
 from transformers import BertTokenizer
 import pickle
 import os
+import util
 
 
 class MyDataset(Dataset):
@@ -78,11 +79,22 @@ def get_data_loaders(batch_size: int):
         test_dataset, [test_size, validate_size]
     )
 
-    vocabSize = dataset.vocabSize
+    num_workers = 8
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size)
-    validation_loader = DataLoader(validation_dataset, batch_size=batch_size)
+    vocabSize = dataset.vocabSize
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True
+    )
+    validation_loader = DataLoader(
+        validation_dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+
     return dataset.maxSeq, vocabSize, train_loader, test_loader, validation_loader
 
 
@@ -91,4 +103,4 @@ def definingLabel(label: str):
         y = [0.0, 1.0]
     else:
         y = [1.0, 0.0]
-    return tensor(y)
+    return tensor(y).to(util.get_device())

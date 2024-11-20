@@ -5,7 +5,6 @@ import data
 import util
 
 device = util.get_device()
-print(f"Using {device} device")
 
 
 def train_one_epoch(model, train_loader, optimizer, device):
@@ -14,8 +13,8 @@ def train_one_epoch(model, train_loader, optimizer, device):
     for X, y in train_loader:
         X = torch.stack(X, dim=1).int().to(device)
         listOfLabels = [label for label in y]
-        listOfLabels = torch.stack(listOfLabels, dim=0).int().to(device)
-        pred = model.forward(X).squeeze(dim=2)
+        listOfLabels = torch.stack(listOfLabels, dim=0).int()
+        pred = model(X).squeeze(dim=2)
         loss = F.cross_entropy(pred.float(), listOfLabels.float())
         optimizer.zero_grad()
         loss.backward()
@@ -32,8 +31,8 @@ def validate(model, validation_loader, device):
         for X, y in validation_loader:
             X = torch.stack(X, dim=1).int().to(device)
             listOfLabels = [label for label in y]
-            listOfLabels = torch.stack(listOfLabels, dim=0).int().to(device)
-            pred = model.forward(X).squeeze(dim=2)
+            listOfLabels = torch.stack(listOfLabels, dim=0).int()
+            pred = model(X).squeeze(dim=2)
             predVal = pred.argmax(dim=1)
             actVal = listOfLabels.argmax(dim=1)
             correct_count += (predVal == actVal).sum().item()
@@ -45,7 +44,9 @@ def train(epochs=5, batchsize=200, learning_rate=0.001):
     maxSeq, vocabSize, train_loader, _, validation_loader = data.get_data_loaders(
         batchsize
     )
-    model = NeuralNetwork(batchSize=batchsize, maxSeq=maxSeq, vocabSize=vocabSize)
+    model = NeuralNetwork(batchSize=batchsize, maxSeq=maxSeq, vocabSize=vocabSize).to(
+        device
+    )
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     validation_accuracy = []
@@ -90,4 +91,14 @@ def my_grid_search():
         print(f"Model {i+1}: {params}, Validation Accuracy: {validation_accuracy[-1]}")
 
 
-my_grid_search()
+if __name__ == "__main__":
+    print(f"Using {device} device")
+    if device == "cuda":
+        print("Is CUDA available:", torch.cuda.is_available())
+        print("CUDA device count:", torch.cuda.device_count())
+        print("Current device:", torch.cuda.current_device())
+        print(
+            "Device name:",
+            torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None",
+        )
+    my_grid_search()

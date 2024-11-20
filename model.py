@@ -9,7 +9,7 @@ class NeuralNetwork(torch.nn.Module):
         self.layer1 = torch.nn.Linear(150, 40)
         # output: (batchSize x maxSeq x 4)
         self.layer2 = torch.nn.Linear(40, 2)
-        self.laye3 = torch.nn.Linear(maxSeq, 1)
+        self.layer3 = torch.nn.Linear(maxSeq, 1)
 
         self.softmax = torch.nn.Softmax(dim=1)
 
@@ -19,6 +19,6 @@ class NeuralNetwork(torch.nn.Module):
         output = self.layer1(output)
         output = self.layer2(output)  # ( batchsize x maxSeq x 2)
         output = torch.transpose(output, 1, 2)
-        output = self.laye3(output)
+        output = self.layer3(output)
         output = self.softmax(output)
         return output
