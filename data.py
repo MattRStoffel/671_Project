@@ -87,7 +87,8 @@ def get_data_loaders(batch_size: int):
 
     vocabSize = dataset.getVocabSize()
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size)
-    validation_loader = DataLoader(validation_dataset, batch_size=batch_size)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=24, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=24, pin_memory=True)
+    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, num_workers=24, pin_memory=True)
+    
     return dataset.maxSeq, vocabSize, train_loader, test_loader, validation_loader

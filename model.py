@@ -11,8 +11,6 @@ device = (
     if torch.backends.mps.is_available()
     else "cpu"
 )
-print(f"Using {device} device")
-
 
 class NeuralNetwork(torch.nn.Module):
     def __init__(self, batchSize: int, maxSeq: int, vocabSize: int):
@@ -22,7 +20,7 @@ class NeuralNetwork(torch.nn.Module):
         self.layer1 = torch.nn.Linear(150, 40)
         # output: (batchSize x maxSeq x 4)
         self.layer2 = torch.nn.Linear(40, 2)
-        self.laye3 = torch.nn.Linear(maxSeq, 1)
+        self.layer3 = torch.nn.Linear(maxSeq, 1)
 
         self.softmax = torch.nn.Softmax(dim=1)
 
@@ -32,7 +30,7 @@ class NeuralNetwork(torch.nn.Module):
         output = self.layer1(output)
         output = self.layer2(output)  # ( batchsize x maxSeq x 2)
         output = torch.transpose(output, 1, 2)
-        output = self.laye3(output)
+        output = self.layer3(output)
         output = self.softmax(output)
         return output
 
@@ -50,9 +48,9 @@ def train_one_epoch(model, train_loader, optimizer, device):
     total_loss = 0
     for X, y in train_loader:
         X = torch.stack(X, dim=1).int().to(device)
-        listOfLabels = [definingLabel(label) for label in y]
-        listOfLabels = torch.stack(listOfLabels, dim=0).int().to(device)
-        pred = model.forward(X).squeeze(dim=2)
+        listOfLabels = [definingLabel(label).to(device) for label in y]
+        listOfLabels = torch.stack(listOfLabels, dim=0).int()
+        pred = model(X).squeeze(dim=2)
         loss = F.cross_entropy(pred.float(), listOfLabels.float())
         optimizer.zero_grad()
         loss.backward()
@@ -67,10 +65,10 @@ def validate(model, validation_loader, device):
     incorrect_count = 0
     with torch.no_grad():
         for X, y in validation_loader:
-            X = torch.stack(X, dim=1).int().to(device)
-            listOfLabels = [definingLabel(label) for label in y]
-            listOfLabels = torch.stack(listOfLabels, dim=0).int().to(device)
-            pred = model.forward(X).squeeze(dim=2)
+            X = torch.stack(X, dim=1).int().to(device)  # Move input data to the correct device
+            listOfLabels = [definingLabel(label).to(device) for label in y]  # Move labels to the device
+            listOfLabels = torch.stack(listOfLabels, dim=0).int()
+            pred = model(X).squeeze(dim=2)
             predVal = pred.argmax(dim=1)
             actVal = listOfLabels.argmax(dim=1)
             correct_count += (predVal == actVal).sum().item()
@@ -80,7 +78,7 @@ def validate(model, validation_loader, device):
 
 def train(epochs=5, batchsize=200, learning_rate=0.001):
     maxSeq, vocabSize, train_loader, _, validation_loader = get_data_loaders(batchsize)
-    model = NeuralNetwork(batchSize=batchsize, maxSeq=maxSeq, vocabSize=vocabSize)
+    model = NeuralNetwork(batchSize=batchsize, maxSeq=maxSeq, vocabSize=vocabSize).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     validation_accuracy = []
@@ -100,7 +98,7 @@ def train(epochs=5, batchsize=200, learning_rate=0.001):
 
 def my_grid_search():
     epochs = [4, 8, 16, 32]
-    batchsizes = [4, 8, 16, 32]
+    batchsizes = [64, 128, 256, 512]
     learning_rates = [0.001, 0.01, 0.1]
     results = {}
     for epoch in epochs:
@@ -126,5 +124,11 @@ def my_grid_search():
     with open("results.pkl", "wb") as f:
         pickle.dump(results, f)
 
+if __name__ == '__main__':
+    print(f"Using {device} device")
+    print("Is CUDA available:", torch.cuda.is_available())
+    print("CUDA device count:", torch.cuda.device_count())
+    print("Current device:", torch.cuda.current_device())
+    print("Device name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
 
-my_grid_search()
+    my_grid_search()
