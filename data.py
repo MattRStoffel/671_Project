@@ -8,9 +8,10 @@ from nltk.stem import PorterStemmer
 from transformers import BertTokenizer
 import numpy as np
 
+
 class MyDataset(Dataset):
     def __init__(self, batchsize: int):
-        df = pd.read_csv("./ExtractedTweets.csv")
+        df = pd.read_csv("./ExtractedTweets.csv").tail(1000)
         try:
             nltk.data.find("corpora/stopwords.zip")
         except LookupError:
@@ -22,7 +23,6 @@ class MyDataset(Dataset):
         except LookupError:
             nltk.download("punkt", quiet=True)
             nltk.data.find("tokenizers/punkt.zip")
-
 
         # Initializing a BERT google-bert/bert-base-uncased style configuration
         self.maxSeq = 0
@@ -47,28 +47,32 @@ class MyDataset(Dataset):
             # Remove stop words and apply stemming
             # Stemmers remove morphological affixes from words, leaving only the word stem
             tokens = [
-                self.stemmer.stem(word) for word in tokens if word not in self.stop_words
+                self.stemmer.stem(word)
+                for word in tokens
+                if word not in self.stop_words
             ]
             # Join tokens back to string
 
-
             text = " ".join(tokens)
             encode = self.tokenizer.encode(text, padding="max_length")
-            self.maxSeq = max(self.maxSeq, len(encode) )
+            self.maxSeq = max(self.maxSeq, len(encode))
 
         except Exception as e:
             print(e)
             print(text)
             exit(0)
         return self.tokenizer.encode(text, padding="max_length", max_length=self.maxSeq)
+
     def getVocabSize(self):
         vocabSize = self.tokenizer.vocab_size
         return vocabSize
+
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
         return self.X[idx], self.Y[idx]
+
 
 def get_data_loaders(batch_size: int):
     dataset = MyDataset(batch_size)
@@ -89,5 +93,3 @@ def get_data_loaders(batch_size: int):
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
     validation_loader = DataLoader(validation_dataset, batch_size=batch_size)
     return dataset.maxSeq, vocabSize, train_loader, test_loader, validation_loader
-
-
