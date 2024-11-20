@@ -10,6 +10,7 @@ from transformers import BertTokenizer
 import pickle
 import os
 import util
+from util import get_cpu_info
 
 
 class MyDataset(Dataset):
@@ -79,7 +80,7 @@ def get_data_loaders(batch_size: int):
         test_dataset, [test_size, validate_size]
     )
 
-    num_workers = 8
+    _, num_workers = get_cpu_info()
 
     vocabSize = dataset.vocabSize
     train_loader = DataLoader(

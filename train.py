@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from model import NeuralNetwork
 import data
 import util
+from util import get_cpu_info
+cpu_name, num_threads = get_cpu_info()
 
 device = util.get_device()
 
@@ -101,4 +103,6 @@ if __name__ == "__main__":
             "Device name:",
             torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None",
         )
+        print(f"Detected CPU: {cpu_name}")
+        print(f"Setting number of CPU threads: {num_threads}")
     my_grid_search()
