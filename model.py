@@ -45,20 +45,9 @@ def definingLabel(label: str):
     return torch.tensor(y)
 
 
-def graph_accuracy(accuracy):
-    plt.plot(accuracy)
-    plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
-    plt.show()
-
-
-def save_model(model, epoch):
-    with open(f"model_{epoch}.pkl", "wb") as f:
-        pickle.dump(model, f)
-
-
 def train_one_epoch(model, train_loader, optimizer, device):
     model.train()
+    total_loss = 0
     for X, y in train_loader:
         X = torch.stack(X, dim=1).int().to(device)
         listOfLabels = [definingLabel(label) for label in y]
@@ -68,6 +57,8 @@ def train_one_epoch(model, train_loader, optimizer, device):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        total_loss += loss.item()
+    return total_loss / len(train_loader)
 
 
 def validate(model, validation_loader, device):
@@ -87,23 +78,53 @@ def validate(model, validation_loader, device):
     return correct_count / (correct_count + incorrect_count)
 
 
-def train():
-    batchsize = 2
+def train(epochs=5, batchsize=200, learning_rate=0.001):
     maxSeq, vocabSize, train_loader, _, validation_loader = get_data_loaders(batchsize)
     model = NeuralNetwork(batchSize=batchsize, maxSeq=maxSeq, vocabSize=vocabSize)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    device = "cpu"
-    epochs = 20
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
     validation_accuracy = []
+    trainings_loss = []
 
     for epoch in range(epochs):
-        train_one_epoch(model, train_loader, optimizer, device)
+        average_loss = train_one_epoch(model, train_loader, optimizer, device)
+        trainings_loss.append(average_loss)
         validation_acc = validate(model, validation_loader, device)
         validation_accuracy.append(validation_acc)
-        print(f"Epoch {epoch}, Validation Accuracy: {validation_acc}")
-        save_model(model, epoch)
+        print(
+            f"Epoch {epoch}, Loss: {average_loss:.5f}, Validation Accuracy: {validation_acc:.5f}"
+        )
 
-    graph_accuracy(validation_accuracy)
+    return model, trainings_loss, validation_accuracy
 
 
-train()
+def my_grid_search():
+    epochs = [4, 8, 16, 32]
+    batchsizes = [4, 8, 16, 32]
+    learning_rates = [0.001, 0.01, 0.1]
+    results = {}
+    for epoch in epochs:
+        for batchsize in batchsizes:
+            for learning_rate in learning_rates:
+                print(
+                    f"Training with epochs: {epoch}, batchsize: {batchsize}, learning_rate: {learning_rate}"
+                )
+                model, trainings_loss, validation_accuracy = train(
+                    epoch, batchsize, learning_rate
+                )
+                results[(epoch, batchsize, learning_rate)] = (
+                    model,
+                    trainings_loss,
+                    validation_accuracy,
+                )
+
+    # print top 5 models
+    results = sorted(results.items(), key=lambda x: x[1][2], reverse=True)
+    for i, (params, (_, _, validation_accuracy)) in enumerate(results):
+        print(f"Model {i+1}: {params}, Validation Accuracy: {validation_accuracy[-1]}")
+
+    with open("results.pkl", "wb") as f:
+        pickle.dump(results, f)
+
+
+my_grid_search()

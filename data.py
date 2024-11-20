@@ -6,12 +6,11 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 from transformers import BertTokenizer
-import numpy as np
 
 
 class MyDataset(Dataset):
-    def __init__(self, batchsize: int):
-        df = pd.read_csv("./ExtractedTweets.csv").tail(1000)
+    def __init__(self):
+        df = pd.read_csv("./ExtractedTweets.csv")
         try:
             nltk.data.find("corpora/stopwords.zip")
         except LookupError:
@@ -33,11 +32,10 @@ class MyDataset(Dataset):
 
         self.X = df["Tweet"].apply(self.preprocess_text)
         self.Y = df["Party"]
+        print("Dataset initialized")
 
     def preprocess_text(self, text: str):
         # Remove URLs they dont add valuable information
-        tokenized_tweet = []
-
         try:
             text = re.sub(r"http\S+|www\S+|https\S+", "", text, flags=re.MULTILINE)
             # Remove punctuation and other unwanted characters
@@ -75,7 +73,7 @@ class MyDataset(Dataset):
 
 
 def get_data_loaders(batch_size: int):
-    dataset = MyDataset(batch_size)
+    dataset = MyDataset()
     train_size = int(0.8 * len(dataset))
     test_size = int(0.8 * (len(dataset) - train_size))
     validate_size = len(dataset) - train_size - test_size
