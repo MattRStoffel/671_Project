@@ -126,9 +126,10 @@ def my_grid_search():
 
 if __name__ == '__main__':
     print(f"Using {device} device")
-    print("Is CUDA available:", torch.cuda.is_available())
-    print("CUDA device count:", torch.cuda.device_count())
-    print("Current device:", torch.cuda.current_device())
-    print("Device name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
+    if device == "cuda":
+        print("Is CUDA available:", torch.cuda.is_available())
+        print("CUDA device count:", torch.cuda.device_count())
+        print("Current device:", torch.cuda.current_device())
+        print("Device name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
 
     my_grid_search()
