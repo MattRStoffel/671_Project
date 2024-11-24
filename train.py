@@ -2,11 +2,13 @@ import torch
 import torch.nn.functional as F
 from data import get_data_loaders
 import pickle
+import time
 
 from model import NeuralNetwork
 from util import definingLabel, device
 
 def train_one_epoch(model, train_loader, optimizer, device):
+    start_time = time.time()
     model.train()
     total_loss = 0
     for X, y in train_loader:
@@ -19,6 +21,12 @@ def train_one_epoch(model, train_loader, optimizer, device):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
+        # End timer
+    end_time = time.time()
+
+    # Calculate elapsed time
+    elapsed_time = end_time - start_time
+    print(f"Epoch training time: {int(elapsed_time/60)}:{int(elapsed_time%60)}")
     return total_loss / len(train_loader)
 
 
@@ -46,12 +54,19 @@ def train(epochs=5, batchsize=200, learning_rate=0.001):
 
     validation_accuracy = []
     trainings_loss = []
-
     for epoch in range(epochs):
         average_loss = train_one_epoch(model, train_loader, optimizer, device)
+        round(average_loss, 5)
         trainings_loss.append(average_loss)
         validation_acc = validate(model, validation_loader, device)
         validation_accuracy.append(validation_acc)
+        if epoch > 3:
+            if trainings_loss[-2] <= trainings_loss[-1] and trainings_loss[-3] <= trainings_loss[-1]:
+                print("Wasting time breaking")
+                break
+            if (validation_accuracy[-2] + validation_accuracy[-3]) / 2 > validation_acc:
+                print("Not improving breaking")
+                break
         print(
             f"Epoch {epoch}, Loss: {average_loss:.5f}, Validation Accuracy: {validation_acc:.5f}"
         )
@@ -60,9 +75,9 @@ def train(epochs=5, batchsize=200, learning_rate=0.001):
 
 
 def my_grid_search():
-    epochs = [4, 8, 16, 32]
-    batchsizes = [64, 128, 256, 512]
-    learning_rates = [0.001, 0.01, 0.1]
+    epochs = [16, 32]
+    batchsizes = [256, 512]
+    learning_rates = [0.001, 0.01]
     results = {}
     for batchsize in batchsizes:
         for epoch in epochs:
@@ -79,13 +94,14 @@ def my_grid_search():
                     validation_accuracy,
                 )
 
+                with open("results.pkl", "wb") as f:
+                    pickle.dump(results, f)
+
     # print top 5 models
     results = sorted(results.items(), key=lambda x: x[1][2], reverse=True)
     for i, (params, (_, _, validation_accuracy)) in enumerate(results):
         print(f"Model {i+1}: {params}, Validation Accuracy: {validation_accuracy[-1]}")
 
-    with open("results.pkl", "wb") as f:
-        pickle.dump(results, f)
 
 
 if __name__ == '__main__':
