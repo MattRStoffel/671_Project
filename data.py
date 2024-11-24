@@ -7,6 +7,8 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 from transformers import BertTokenizer
 
+from util import get_cpu_info
+
 
 class MyDataset(Dataset):
     def __init__(self):
@@ -87,8 +89,10 @@ def get_data_loaders(batch_size: int):
 
     vocabSize = dataset.getVocabSize()
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=24, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=24, pin_memory=True)
-    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, num_workers=24, pin_memory=True)
+    num_workers = 1
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
+    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
     
     return dataset.maxSeq, vocabSize, train_loader, test_loader, validation_loader
