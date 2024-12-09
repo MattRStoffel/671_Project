@@ -30,34 +30,26 @@ class MyDataset(Dataset):
         label = self.data["labels"][idx]
         return tweet, label
 
+def preprocess_text(text):
+    nltk.data.find("corpora/stopwords.zip")
 
-def preprocess_and_save(csv_file, preprocessed_file):
-    df = pd.read_csv(csv_file)
-    try:
-        nltk.data.find("corpora/stopwords.zip")
-    except LookupError:
-        nltk.download("stopwords", quiet=True)
-        nltk.data.find("corpora/stopwords.zip")
-
-    try:
-        nltk.data.find("tokenizers/punkt.zip")
-    except LookupError:
-        nltk.download("punkt", quiet=True)
-        nltk.data.find("tokenizers/punkt.zip")
+    nltk.data.find("tokenizers/punkt.zip")
 
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     stop_words = stopwords.words("english")
     stemmer = PorterStemmer()
     maxSeq = 128
+    text = re.sub(r"http\S+|www\S+|https\S+", "", text, flags=re.MULTILINE)
+    text = re.sub(r"[^\w\s]", "", text)
+    text = text.lower()
+    tokens = word_tokenize(text)
+    tokens = [stemmer.stem(word) for word in tokens if word not in stop_words]
+    text = " ".join(tokens)
+    return tokenizer.encode(text, padding="max_length", max_length=maxSeq)
 
-    def preprocess_text(text):
-        text = re.sub(r"http\S+|www\S+|https\S+", "", text, flags=re.MULTILINE)
-        text = re.sub(r"[^\w\s]", "", text)
-        text = text.lower()
-        tokens = word_tokenize(text)
-        tokens = [stemmer.stem(word) for word in tokens if word not in stop_words]
-        text = " ".join(tokens)
-        return tokenizer.encode(text, padding="max_length", max_length=maxSeq)
+def preprocess_and_save(csv_file, preprocessed_file):
+    df = pd.read_csv(csv_file)
+
 
     tweets = df["Tweet"].apply(preprocess_text).tolist()
     labels = df["Party"].apply(definingLabel).tolist()

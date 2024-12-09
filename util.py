@@ -27,6 +27,10 @@ def get_cpu_info():
         return "Unknown Processor", 1  # in case of failure
 
 
+def save_results(results, name):
+    with open(name, "wb") as f:
+        pickle.dump(results, f)
+
 def graph_results():
     plt.show()
 
