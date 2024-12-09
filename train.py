@@ -67,9 +67,9 @@ def train(epochs=5, batchsize=200, learning_rate=0.001):
 
 
 def my_grid_search():
-    epochs = [4, 8, 16, 32]
-    batchsizes = [200, 500, 1000]
-    learning_rates = [0.001, 0.01, 0.1]
+    epochs = [4]
+    batchsizes = [500]
+    learning_rates = [0.001]
     results = {}
     for epoch in epochs:
         for batchsize in batchsizes:

@@ -1,5 +1,5 @@
 {
-  description = "A flake for a Python environment with PyTorch";
+  description = "A flake for a Python environment with PyTorch and Ollama";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

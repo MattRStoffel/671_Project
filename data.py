@@ -72,7 +72,7 @@ def get_data_loaders(batch_size: int):
         test_dataset, [test_size, validate_size]
     )
 
-    _, num_workers = get_cpu_info()
+    num_workers = 1
 
     vocabSize = dataset.vocabSize
     train_loader = DataLoader(
