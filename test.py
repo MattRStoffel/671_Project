@@ -5,6 +5,8 @@ import torch
 from ollama import chat
 from ollama import ChatResponse
 from data import preprocess_text
+import util
+import data
 
 def get_negation(text):
     response: ChatResponse = chat(model='phi3', messages=[
@@ -32,14 +34,16 @@ def get_class(tensor_output):
     predicted_class_index = torch.argmax(tensor_output, dim=1).item()
 
     if predicted_class_index == 1:
-        return "Republican"
+        return 1
     else:
-        return "Democrat"
+        return 0
 
 
 # Function to test the model with the negated tweets
 def test_model_with_negated_tweets(df, model):
     model.eval()  # Make sure the model is in evaluation mode
+    
+    test_results = []
     for index, tweet in df['Tweet'][:9000][20:].items():
         # Get the negated tweet from the API
         negated_tweet = get_negation(tweet)
@@ -54,13 +58,18 @@ def test_model_with_negated_tweets(df, model):
         processed_negated_tensor = torch.tensor(processed_negated, dtype=torch.long).unsqueeze(0)  # Add batch dimension
 
         try:
-          # Run the model on both the original and negated tweets
+            # Run the model on both the original and negated tweets
           with torch.no_grad():  # Disable gradient calculation during inference
               model_official = get_class(model(processed_tweet_tensor))  # Pass tensor to model
               model_negated = get_class(model(processed_negated_tensor))  # Pass tensor to model
         except Exception as e:
             continue 
+        
+        x = (df.loc[index, 'Party'], model_official, model_negated)
+        test_results.append(x)
+        util.save_results(test_results, "reverse.pkl")
 
+        
         # Print results
         print(f"Original: {tweet}")
         print(f"Negated: {negated_tweet}")
